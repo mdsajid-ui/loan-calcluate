@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Auxilo – EMI Calculator for Institutes</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ===== TOP BAR ===== -->
+  <header class="topbar">
+    <div class="logo">
+      <div class="logo-icon">&#128293;</div>
+      <div>
+        <div class="logo-name">AUXILO</div>
+        <div class="logo-tag">The next level beckons</div>
+      </div>
+    </div>
+    <h1 class="page-title">EMI &amp; SI CALCULATOR FOR INSTITUTES</h1>
+    <div class="version-badge">Version 1.1</div>
+  </header>
+
+  <!-- ===== MAIN LAYOUT ===== -->
+  <main class="main-grid">
+
+    <!-- LEFT COLUMN -->
+    <div class="left-col">
+
+      <!-- LOAN DETAILS FORM -->
+      <section class="card">
+        <div class="card-title">&#128196; LOAN DETAILS</div>
+
+        <div class="form-grid">
+
+          <div class="form-group">
+            <label for="productType">Product Type</label>
+            <select id="productType">
+              <option value="roi">ROI (Return on Investment)</option>
+              <option value="subvention">Subvention</option>
+              <option value="hybrid">Hybrid</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="loanAmount">Loan Amount (&#8377;)</label>
+            <input type="number" id="loanAmount" value="76000" min="1000" placeholder="Enter loan amount" />
+          </div>
+
+          <div class="form-group">
+            <label for="tenure">Total Loan Tenure (Months)</label>
+            <input type="number" id="tenure" value="24" min="1" max="360" placeholder="e.g. 24" />
+          </div>
+
+          <div class="form-group">
+            <label for="interestRate">Interest Rate (% p.a.)</label>
+            <input type="number" id="interestRate" value="17.29" step="0.01" min="0" placeholder="e.g. 17.29" />
+          </div>
+
+          <div class="form-group">
+            <label for="processingFee">Processing Fee / Other Fee (&#8377;)</label>
+            <input type="number" id="processingFee" value="0" min="0" placeholder="0" />
+          </div>
+
+          <div class="form-group">
+            <label for="disbDate">Disbursement Date</label>
+            <input type="date" id="disbDate" value="2026-02-05" />
+          </div>
+
+        </div>
+
+        <button class="calc-btn" onclick="calculate()">
+          &#128290; &nbsp; CALCULATE
+        </button>
+      </section>
+
+      <!-- CALCULATION SUMMARY -->
+      <section class="card">
+        <div class="card-title">&#128200; CALCULATION SUMMARY</div>
+
+        <div class="summary-grid">
+          <div class="sum-card blue">
+            <div class="sum-icon">&#8377;</div>
+            <div>
+              <div class="sum-label">EMI Amount</div>
+              <div class="sum-value" id="s-emi">&#8377; 3,768</div>
+            </div>
+          </div>
+
+          <div class="sum-card teal">
+            <div class="sum-icon">&#128200;</div>
+            <div>
+              <div class="sum-label">Total Interest</div>
+              <div class="sum-value" id="s-interest">&#8377; 14,439</div>
+            </div>
+          </div>
+
+          <div class="sum-card gray">
+            <div class="sum-icon">&#127981;</div>
+            <div>
+              <div class="sum-label">Total Repayment</div>
+              <div class="sum-value" id="s-total">&#8377; 90,439</div>
+            </div>
+          </div>
+
+          <div class="sum-card orange">
+            <div class="sum-icon">&#128176;</div>
+            <div>
+              <div class="sum-label">Disbursal Amount</div>
+              <div class="sum-value" id="s-disbursal">&#8377; 76,000</div>
+            </div>
+          </div>
+
+          <div class="sum-card green">
+            <div class="sum-icon">&#127873;</div>
+            <div>
+              <div class="sum-label">Subvention Amount</div>
+              <div class="sum-value" id="s-subvention">&#8377; 0</div>
+            </div>
+          </div>
+
+          <div class="sum-card pink">
+            <div class="sum-icon">&#37;</div>
+            <div>
+              <div class="sum-label">Simple Interest Amount</div>
+              <div class="sum-value" id="s-si">–</div>
+            </div>
+          </div>
+
+          <div class="sum-card purple">
+            <div class="sum-icon">&#37;</div>
+            <div>
+              <div class="sum-label">ROI % (Floating)</div>
+              <div class="sum-value" id="s-roi-float">17.29%</div>
+            </div>
+          </div>
+
+          <div class="sum-card red">
+            <div class="sum-icon">&#37;</div>
+            <div>
+              <div class="sum-label">ROI % (Flat)</div>
+              <div class="sum-value" id="s-roi-flat">9.50%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="note">
+          &#8505;&#65039; The EMI and Interest calculations are indicative. Actual values may vary.
+        </div>
+      </section>
+
+    </div><!-- end left-col -->
+
+    <!-- RIGHT COLUMN: AMORTIZATION TABLE -->
+    <div class="right-col">
+      <section class="card table-card">
+        <div class="card-title" style="justify-content: space-between;">
+          <span>&#128203; AMORTIZATION SCHEDULE</span>
+          <button class="download-btn" onclick="downloadCSV()" title="Download CSV">
+            &#8681; Download
+          </button>
+        </div>
+
+        <div class="table-wrap">
+          <table id="amortTable">
+            <thead>
+              <tr>
+                <th>Sr. No.</th>
+                <th>Date</th>
+                <th>POS (&#8377;)</th>
+                <th>Interest (&#8377;)</th>
+                <th>Principal (&#8377;)</th>
+                <th>EMI (&#8377;)</th>
+                <th>Cashflow (&#8377;)</th>
+              </tr>
+            </thead>
+            <tbody id="amortBody">
+              <!-- Rows filled by JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div><!-- end right-col -->
+
+  </main>
+
+  <!-- Load JavaScript last -->
+  <script src="script.js"></script>
+
+</body>
+</html>
