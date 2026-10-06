@@ -53,8 +53,8 @@
           </div>
 
           <div class="form-group">
-            <label for="interestRate">Interest Rate (% p.a.)</label>
-            <input type="number" id="interestRate" value="17.29" step="0.01" min="0" placeholder="e.g. 17.29" />
+            <label for="interestRate">Interest Rate (% p.a.) &#128274; Fixed</label>
+            <input type="number" id="interestRate" value="17.29" step="0.01" min="0" readonly title="Interest rate is fixed" />
           </div>
 
           <div class="form-group">
@@ -130,7 +130,7 @@
           <div class="sum-card purple">
             <div class="sum-icon">&#37;</div>
             <div>
-              <div class="sum-label">ROI % (Floating)</div>
+              <div class="sum-label">ROI % (Fixed)</div>
               <div class="sum-value" id="s-roi-float">17.29%</div>
             </div>
           </div>
@@ -156,8 +156,8 @@
       <section class="card table-card">
         <div class="card-title" style="justify-content: space-between;">
           <span>&#128203; AMORTIZATION SCHEDULE</span>
-          <button class="download-btn" onclick="downloadCSV()" title="Download CSV">
-            &#8681; Download
+          <button class="download-btn" onclick="downloadPDF()" title="Download PDF">
+            &#8681; Download PDF
           </button>
         </div>
 
@@ -185,6 +185,9 @@
   </main>
 
   <!-- Load JavaScript last -->
+  <!-- PDF libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
   <script src="script.js"></script>
 
 </body>
