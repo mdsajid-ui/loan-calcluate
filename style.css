@@ -335,3 +335,10 @@ tr:hover td {
 .download-btn:hover {
   background: #e0eaf5;
 }
+
+/* Fixed (read-only) interest rate field */
+input[readonly] {
+  background: #eef1f6;
+  color: #55607a;
+  cursor: not-allowed;
+}
