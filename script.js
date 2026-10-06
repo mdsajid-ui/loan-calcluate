@@ -4,6 +4,12 @@
    ============================================ */
 
 /* ------------------------------------
+   FIXED INTEREST RATE (% p.a.)
+   Change this one number to change the rate.
+   ------------------------------------ */
+const FIXED_RATE = 17.29;
+
+/* ------------------------------------
    HELPER FUNCTIONS
    ------------------------------------ */
 
@@ -40,6 +46,7 @@ function days360(date1, date2) {
    STORE SCHEDULE DATA (for CSV export)
    ------------------------------------ */
 let scheduleData = [];
+let reportMeta = {};
 
 /* ------------------------------------
    MAIN CALCULATE FUNCTION
@@ -48,7 +55,7 @@ function calculate() {
 
   // --- Step 1: Read inputs from the form ---
   const P = parseFloat(document.getElementById('loanAmount').value) || 0;
-  const annualRate = parseFloat(document.getElementById('interestRate').value) / 100 || 0;
+  const annualRate = FIXED_RATE / 100; // rate is fixed, not read from the form
   const n = parseInt(document.getElementById('tenure').value) || 0;
   const disbDateStr = document.getElementById('disbDate').value;
   const disbDate = new Date(disbDateStr);
@@ -111,7 +118,7 @@ function calculate() {
     prevDate = emiDate;
   }
 
-  // Save for CSV download
+  // Save for PDF / CSV download
   scheduleData = rows;
 
   // --- Step 5: Calculate summary figures ---
@@ -119,6 +126,14 @@ function calculate() {
   // Flat ROI: simple interest rate equivalent
   const roiFlat = (totalInterest / P / n) * 12 * 100;
   const simpleInterest = P * annualRate; // Annual SI for first year
+
+  reportMeta = {
+    productType: document.getElementById('productType').selectedOptions[0].text,
+    loanAmount: P, tenure: n, rate: annualRate * 100,
+    fee: parseFloat(document.getElementById('processingFee').value) || 0,
+    disbDate: disbDate, emi: emi, totalInterest: totalInterest,
+    totalRepayment: totalRepayment, roiFlat: roiFlat
+  };
 
   // --- Step 6: Update the Summary Cards ---
   document.getElementById('s-emi').textContent      = '₹ ' + formatINR(emi);
@@ -200,10 +215,111 @@ function downloadCSV() {
   URL.revokeObjectURL(url);
 }
 
+
+/* ------------------------------------
+   DOWNLOAD PDF FUNCTION
+   (PDF default font has no rupee symbol, so "Rs." is used)
+   ------------------------------------ */
+function downloadPDF() {
+  if (scheduleData.length === 0) {
+    alert('Please click CALCULATE first.');
+    return;
+  }
+  if (!window.jspdf) {
+    alert('PDF library could not be loaded. Please check your internet connection and try again.');
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const m = reportMeta;
+  const pageW = doc.internal.pageSize.getWidth();
+  const rs = function (v) { return 'Rs. ' + formatINR(v); };
+
+  // Header band
+  doc.setFillColor(13, 31, 60);
+  doc.rect(0, 0, pageW, 60, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.text('AUXILO - EMI & SI Calculator for Institutes', 30, 28);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text('Loan Amortization Report  |  Generated on ' + formatDate(new Date()), 30, 46);
+
+  // Loan details + summary (two-column table)
+  doc.setTextColor(0, 0, 0);
+  doc.autoTable({
+    startY: 76,
+    theme: 'grid',
+    styles: { fontSize: 9, cellPadding: 5 },
+    headStyles: { fillColor: [13, 31, 60] },
+    head: [['Loan Details', '', 'Calculation Summary', '']],
+    body: [
+      ['Product Type', m.productType, 'EMI Amount', rs(m.emi)],
+      ['Loan Amount', rs(m.loanAmount), 'Total Interest', rs(m.totalInterest)],
+      ['Tenure', m.tenure + ' months', 'Total Repayment', rs(m.totalRepayment)],
+      ['Interest Rate (Fixed)', m.rate.toFixed(2) + '% p.a.', 'ROI % (Flat)', m.roiFlat.toFixed(2) + '%'],
+      ['Processing / Other Fee', rs(m.fee), 'Disbursal Amount', rs(m.loanAmount)],
+      ['Disbursement Date', formatDate(m.disbDate), 'Subvention Amount', 'Rs. 0']
+    ],
+    columnStyles: {
+      0: { fontStyle: 'bold', fillColor: [240, 244, 250] },
+      2: { fontStyle: 'bold', fillColor: [240, 244, 250] }
+    }
+  });
+
+  // Amortization schedule
+  let totalI = 0, totalP = 0, totalE = 0, totalC = 0;
+  const body = scheduleData.map(function (r) {
+    totalI += r.interest; totalP += r.principal; totalE += r.emi; totalC += r.cashflow;
+    return [r.sr, formatDate(r.date), formatINR(r.pos), formatINR(r.interest),
+            formatINR(r.principal), formatINR(r.emi), formatINR(r.cashflow)];
+  });
+  body.push([
+    { content: 'Total', colSpan: 2, styles: { halign: 'left' } },
+    '-', formatINR(totalI), formatINR(totalP), formatINR(totalE), formatINR(totalC)
+  ]);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.text('Amortization Schedule', 30, doc.lastAutoTable.finalY + 24);
+
+  doc.autoTable({
+    startY: doc.lastAutoTable.finalY + 32,
+    theme: 'striped',
+    styles: { fontSize: 8.5, cellPadding: 4, halign: 'right' },
+    headStyles: { fillColor: [13, 31, 60], halign: 'right' },
+    head: [['Sr. No.', 'Date', 'POS (Rs)', 'Interest (Rs)', 'Principal (Rs)', 'EMI (Rs)', 'Cashflow (Rs)']],
+    body: body,
+    didParseCell: function (data) {
+      if (data.section === 'body' && data.row.index === body.length - 1) {
+        data.cell.styles.fontStyle = 'bold';
+        data.cell.styles.fillColor = [225, 232, 245];
+      }
+    }
+  });
+
+  // Footer: note + page numbers
+  const pages = doc.internal.getNumberOfPages();
+  for (let p = 1; p <= pages; p++) {
+    doc.setPage(p);
+    const pageH = doc.internal.pageSize.getHeight();
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(8);
+    doc.setTextColor(110, 110, 110);
+    doc.text('The EMI and interest calculations are indicative. Actual values may vary.', 30, pageH - 20);
+    doc.text('Page ' + p + ' of ' + pages, pageW - 30, pageH - 20, { align: 'right' });
+  }
+
+  doc.save('Auxilo_Amortization_Schedule.pdf');
+}
+
 /* ------------------------------------
    RUN CALCULATE ON PAGE LOAD
    so the table is already filled in
    ------------------------------------ */
 window.onload = function() {
+  document.getElementById('interestRate').value = FIXED_RATE; // lock the fixed rate
   calculate();
 };
